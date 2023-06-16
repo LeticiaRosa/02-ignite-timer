@@ -23,13 +23,26 @@ const newCycleFormSchema = zod.object({
     .max(60, 'O ciclo precisa ser de no máximo de 60 minutos'),
 })
 
-export function Home() {
-  const { register, handleSubmit, watch, formState } = useForm({
-    resolver: zodResolver(newCycleFormSchema),
-  })
+// interface NewCycleFormData {
+//   task: string
+//   minutesAmount: number
+// }
 
-  function handleCreateNewCycle(data: any) {
+type NewCycleFormData = zod.infer<typeof newCycleFormSchema> // use do TYPEOF quando é preciso referenciar uma variavel JS no TS.
+
+export function Home() {
+  const { register, handleSubmit, watch, formState, reset } =
+    useForm<NewCycleFormData>({
+      resolver: zodResolver(newCycleFormSchema),
+      defaultValues: {
+        task: '',
+        minutesAmount: 0,
+      },
+    })
+
+  function handleCreateNewCycle(data: NewCycleFormData) {
     console.log(data)
+    reset()
   }
 
   const task = watch('task')
