@@ -1,10 +1,12 @@
-import { Play } from 'phosphor-react'
+import { HandPalm, Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as zod from 'zod'
+import { differenceInSeconds } from 'date-fns'
 
 import {
   ButtonStart,
+  ButtonStop,
   CountContainer,
   FormContainer,
   HomeContainer,
@@ -12,7 +14,7 @@ import {
   InputTask,
   Separator,
 } from './styles'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // controlled / uncontrolled
 
@@ -33,6 +35,8 @@ interface Cycle {
   id: string
   task: string
   minutesAmount: number
+  startDate: Date
+  interruptedDate?: Date
 }
 
 type NewCycleFormData = zod.infer<typeof newCycleFormSchema> // use do TYPEOF quando é preciso referenciar uma variavel JS no TS.
@@ -55,13 +59,42 @@ export function Home() {
       id,
       task: data.task,
       minutesAmount: data.minutesAmount,
+      startDate: new Date(),
     }
     setCycles((state) => [...state, newCycle])
     setActiveCycleId(id)
+    setAmountSecondsPassed(0)
     reset()
   }
 
+  function handleInterrupCycle() {
+    setCycles(
+      cycles.map((cycle) => {
+        if (cycle.id === activeCycleId) {
+          return { ...cycle, interruptedDate: new Date() }
+        } else {
+          return cycle
+        }
+      }),
+    )
+    setActiveCycleId(null)
+  }
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+
+  useEffect(() => {
+    let interval: number
+    if (activeCycle) {
+      interval = setInterval(() => {
+        setAmountSecondsPassed(
+          differenceInSeconds(new Date(), activeCycle.startDate),
+        )
+      }, 1000)
+    }
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [activeCycle])
 
   const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
   const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
@@ -71,6 +104,12 @@ export function Home() {
 
   const minutes = String(minutesAmount).padStart(2, '0')
   const seconds = String(secondsAmount).padStart(2, '0')
+
+  useEffect(() => {
+    if (activeCycle) {
+      document.title = `${minutes}:${seconds}`
+    }
+  }, [minutes, seconds, activeCycle])
 
   const task = watch('task')
   const isSubmitDisabled = !task
@@ -84,6 +123,7 @@ export function Home() {
             id="task"
             placeholder="Dê um nome para o seu projeto"
             list="task-suggestions"
+            disabled={!!activeCycle}
             {...register('task')}
           />
 
@@ -99,6 +139,7 @@ export function Home() {
             type="number"
             placeholder="00"
             step={5}
+            disabled={!!activeCycle}
             {...register('minutesAmount', { valueAsNumber: true })}
           />
 
@@ -113,10 +154,17 @@ export function Home() {
           <span>{seconds[1]}</span>
         </CountContainer>
 
-        <ButtonStart type="submit" disabled={isSubmitDisabled}>
-          <Play />
-          Começar
-        </ButtonStart>
+        {activeCycle ? (
+          <ButtonStop type="button" onClick={handleInterrupCycle}>
+            <HandPalm />
+            Interromper
+          </ButtonStop>
+        ) : (
+          <ButtonStart type="submit" disabled={isSubmitDisabled}>
+            <Play />
+            Começar
+          </ButtonStart>
+        )}
       </form>
     </HomeContainer>
   )
