@@ -63,22 +63,3 @@ export const ButtonStop = styled(BaseButtonCountDown)`
     background-color: ${(props) => props.theme['red-700']};
   }
 `
-
-const BaseInput = styled.input`
-  background: transparent;
-  height: 2.5rem;
-  border: 0;
-  border-bottom: 2px solid ${(props) => props.theme['gray-500']};
-  font-weight: bold;
-  font-size: 1.125rem;
-  padding: 0 0.5rem;
-  color: ${(props) => props.theme['gray-100']};
-
-  &:focus {
-    box-shadow: none;
-  }
-
-  &::placeholder {
-    color: ${(props) => props.theme['gray-500']};
-  }
-`
