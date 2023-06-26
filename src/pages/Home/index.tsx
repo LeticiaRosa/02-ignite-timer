@@ -37,6 +37,7 @@ export function Home() {
 
   function handleCreateNewCycle(data: NewCycleFormData) {
     createNewCycle(data)
+
     reset()
   }
 

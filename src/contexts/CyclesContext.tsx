@@ -1,16 +1,20 @@
-import { ReactNode, createContext, useState, useReducer } from 'react'
+import {
+  ReactNode,
+  createContext,
+  useState,
+  useReducer,
+  useEffect,
+} from 'react'
+import { Cycle, cyclesReducer } from '../reducers/cycles/reducer'
+import {
+  addNewCycleAction,
+  interrupCurrentCycleAction,
+  markCurrentCycleAsFinishedAction,
+} from '../reducers/cycles/actions'
+import { differenceInSeconds } from 'date-fns'
 
 interface CyclesContextProviderProps {
   children: ReactNode
-}
-
-interface Cycle {
-  id: string
-  task: string
-  minutesAmount: number
-  startDate: Date
-  interruptedDate?: Date
-  finishedDate?: Date
 }
 
 interface CreateCycleData {
@@ -29,72 +33,51 @@ interface CyclesContextType {
   interrupCurrentCycle: () => void
 }
 
-interface CyclesState {
-  cycles: Cycle[]
-  activeCycleId: string | null
-}
-
 export const CyclesContext = createContext({} as CyclesContextType)
 
 export function CyclesContextProvider({
   children,
 }: CyclesContextProviderProps) {
   const [cyclesState, dispach] = useReducer(
-    (state: CyclesState, action: any) => {
-      if (action.type === 'ADD_NEW_CYCLE') {
-        return {
-          ...state,
-          cycles: [...state.cycles, action.payload.newCycle],
-          activeCycleId: action.payload.newCycle.id,
-        }
-      }
-
-      if (action.type === 'INTERRUP_CURRENT_CYCLE') {
-        return {
-          ...state,
-          cycles: state.cycles.map((cycle) => {
-            if (cycle.id === action.payload.activeCycleId) {
-              return { ...cycle, interruptedDate: new Date() }
-            } else {
-              return cycle
-            }
-          }),
-          activeCycleId: null,
-        }
-      }
-      if (action.type === 'MARK_CURRENT_CYCLE_AS_FINISHED') {
-        return {
-          ...state,
-          cycles: state.cycles.map((cycle) => {
-            if (cycle.id === action.payload.activeCycleId) {
-              return { ...cycle, finishedDate: new Date() }
-            } else {
-              return cycle
-            }
-          }),
-          activeCycleId: null,
-        }
-      }
-      return state
-    },
+    cyclesReducer,
     {
       cycles: [],
       activeCycleId: null,
     },
+    (initialState) => {
+      const storedStateAsJSON = localStorage.getItem(
+        '@ignite-timer: cycles-state-1.0.0',
+      )
+      if (storedStateAsJSON) {
+        return JSON.parse(storedStateAsJSON)
+      }
+      return initialState
+      // return {
+      //   cycles: [],
+      //   activeCycleId: null,
+      // }
+    },
   )
-  const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
   const { activeCycleId, cycles } = cyclesState
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
+  const [amountSecondsPassed, setAmountSecondsPassed] = useState(() => {
+    if (activeCycle) {
+      return differenceInSeconds(new Date(), new Date(activeCycle.startDate))
+    }
+    return 0
+  })
+
+  useEffect(() => {
+    const stateJSON = JSON.stringify(cyclesState)
+    localStorage.setItem('@ignite-timer: cycles-state-1.0.0', stateJSON)
+  }, [cyclesState])
 
   function setSecondsPassed(seconds: number) {
     setAmountSecondsPassed(seconds)
   }
 
   function markCurrentCycleAsFinished() {
-    dispach({
-      type: 'MARK_CURRENT_CYCLE_AS_FINISHED',
-      payload: activeCycleId,
-    })
+    dispach(markCurrentCycleAsFinishedAction())
   }
 
   function createNewCycle(data: CreateCycleData) {
@@ -105,27 +88,12 @@ export function CyclesContextProvider({
       minutesAmount: data.minutesAmount,
       startDate: new Date(),
     }
-    dispach({
-      type: 'ADD_NEW_CYCLE',
-      payload: newCycle,
-    })
+    dispach(addNewCycleAction(newCycle))
     setAmountSecondsPassed(0)
   }
 
   function interrupCurrentCycle() {
-    dispach({
-      type: 'INTERRUP_CURRENT_CYCLE',
-      payload: activeCycleId,
-    })
-    // setCycles((state) =>
-    //   state.map((cycle) => {
-    //     if (cycle.id === activeCycleId) {
-    //       return { ...cycle, interruptedDate: new Date() }
-    //     } else {
-    //       return cycle
-    //     }
-    //   }),
-    // )
+    dispach(interrupCurrentCycleAction())
   }
 
   return (
