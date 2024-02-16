@@ -1,7 +1,7 @@
 
-Projeto TIMER!
+# Projeto TIMER!
 
-Segundo projeto do curso da RocketSeat
+## Segundo projeto do curso da RocketSeat
 
 Neste projeto usamos o Styled Components, React-Router-DOM, Contextos, Reducers, Imutabilidade com o Immer, usamos a biblioteca React Hook Form e usamos o Zod para validação de formulários.
 
